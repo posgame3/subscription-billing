@@ -25,11 +25,12 @@ function encodeU64LE(n) {
 }
 
 // WriteBuffer instruction (tag = 1)
+// Bincode: variant(u32) + offset(u32) + bytes_len(u64) + bytes
 function encodeWrite(offset, bytes) {
   return Buffer.concat([
-    encodeU32LE(1), // Write
+    encodeU32LE(1), // Write variant
     encodeU32LE(offset),
-    encodeU32LE(bytes.length),
+    encodeU64LE(bytes.length), // Bincode encodes Vec<u8> length as u64!
     bytes
   ]);
 }

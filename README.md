@@ -13,6 +13,7 @@
 | **Network** | Solana Devnet |
 | **Deployer** | `CF9qQdfCJRPVkGTK4F2vMG1uFGmdPom9ZrYKAakHQB73` |
 | **Deploy TX** | [222zyEjd...](https://explorer.solana.com/tx/222zyEjd7E56BU9KjhT6y12mYqgkSJQHsQf1ExGu7Q5gydzhqrLwvL8bMmj5QfqmJwrcZGs7VW6f8jGsj7W2AL29?cluster=devnet) |
+| **Upgrade TX** | [4wWRQnhJ...](https://explorer.solana.com/tx/4wWRQnhJ3Mv5M36yZzSFVCKfToaTMjtE146oyuRWxu9A7Xj9ZJ78moVW2PnAbgzFK6weaNzyKhgr9f9L37DyqMYn?cluster=devnet) |
 | **Explorer** | [View on Solana Explorer](https://explorer.solana.com/address/CHiGNDhvm7KCL3216YqajQMf82h2HUJo9hTPgksbGCZB?cluster=devnet) |
 
 ### 🎬 Live Demo Transactions (verified on devnet)

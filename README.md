@@ -115,7 +115,7 @@ User → HTTPS → API Server → Stripe SDK → Stripe
                     └──────→ Webhook handler (payment events)
 ```
 
-**Cost:** ~$0.30% + $0.30 per transaction, database hosting ($50-200/mo), 
+**Cost:** ~2.9% + $0.30 per transaction, database hosting ($50–200/mo), 
 engineering effort to maintain payment security, PCI compliance overhead.
 
 ### The On-Chain Stack
@@ -267,17 +267,18 @@ subscription-billing/
 │   └── subscription-billing/
 │       ├── Cargo.toml
 │       └── src/
-│           └── lib.rs         # Full program: accounts, instructions, contexts
+│           ├── lib.rs         # Full program: accounts, instructions, contexts
+│           └── cpi.rs         # CPI helpers for external program composability
 ├── tests/
-│   └── subscription_billing.ts # 10 integration tests
+│   └── subscription_billing.ts # 15 integration tests
 ├── cli/
 │   └── client.ts              # TypeScript CLI client
-├── target/
-│   ├── deploy/
-│   │   └── subscription_billing.so   # Compiled BPF binary (331KB)
-│   └── idl/
-│       └── subscription_billing.json # Auto-generated IDL
+├── app/
+│   └── index.html             # Standalone dApp frontend (zero build step)
+├── demo.mjs                   # Live devnet demo script
 ├── Anchor.toml
+├── Cargo.toml
+├── rust-toolchain.toml
 └── README.md
 ```
 

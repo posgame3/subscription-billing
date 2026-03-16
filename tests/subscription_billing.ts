@@ -458,21 +458,22 @@ describe("subscription-billing", () => {
     // First tick: Active → GracePeriod (or directly Expired if grace=0)
     await program.methods
       .tick()
-      .accounts({ plan: shortPlanPDA, subscription: daveSubPDA })
+      .accounts({ registry: registryPDA, plan: shortPlanPDA, subscription: daveSubPDA })
       .rpc({ commitment: "confirmed" });
 
     // Second tick if needed: GracePeriod → Expired
     try {
       await program.methods
         .tick()
-        .accounts({ plan: shortPlanPDA, subscription: daveSubPDA })
+        .accounts({ registry: registryPDA, plan: shortPlanPDA, subscription: daveSubPDA })
         .rpc({ commitment: "confirmed" });
     } catch (_) { /* already expired */ }
 
     const sub = await program.account.subscription.fetch(daveSubPDA);
-    // Status 2 = Expired, Status 1 = GracePeriod
-    assert.isTrue(sub.status === 2 || sub.status === 1, `Expected expired/grace, got ${sub.status}`);
-    console.log("  ✓ tick advanced subscription to status:", sub.status, "(1=Grace, 2=Expired)");
+    const isGrace = JSON.stringify(sub.status) === JSON.stringify({ gracePeriod: {} });
+    const isExpired = JSON.stringify(sub.status) === JSON.stringify({ expired: {} });
+    assert.isTrue(isGrace || isExpired, `Expected grace/expired, got: ${JSON.stringify(sub.status)}`);
+    console.log("  ✓ tick advanced subscription to:", JSON.stringify(sub.status));
   });
 
   // ── 12. renew on Expired subscription returns error ────────────────────────
@@ -524,7 +525,7 @@ describe("subscription-billing", () => {
     for (let i = 0; i < 3; i++) {
       try {
         await program.methods.tick()
-          .accounts({ plan: expPlanPDA, subscription: eveSubPDA })
+          .accounts({ registry: registryPDA, plan: expPlanPDA, subscription: eveSubPDA })
           .rpc({ commitment: "confirmed" });
       } catch (_) {}
     }

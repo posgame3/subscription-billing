@@ -319,14 +319,30 @@ const STATUS = ['Active','Grace Period','Expired','Cancelled'];
 const STATUS_CLS = ['status-active','status-grace','status-expired','status-cancelled'];
 
 // ── Wallet ───────────────────────────────────────────────────────────────────
+async function switchToDevnet() {
+  try {
+    const ph = window?.solana;
+    if (!ph?.isPhantom) return;
+    if (ph.request) {
+      await ph.request({ method: 'changeNetwork', params: { network: 'devnet' } });
+    }
+  } catch (_) { /* user may reject or method unavailable — non-blocking */ }
+}
+
 window.connectWallet = async () => {
   const ph = window?.solana;
   if (!ph?.isPhantom) { toast('Phantom wallet not found — install at <a href="https://phantom.app" target="_blank">phantom.app</a>','err'); return; }
   try {
+    await switchToDevnet();
     await ph.connect();
     wallet = ph;
     renderWalletBadge();
-    toast('✅ Connected: ' + short(wallet.publicKey));
+    toast('✅ Connected on Devnet: ' + short(wallet.publicKey));
+    // Verify program reachable on devnet
+    try {
+      const progInfo = await conn.getAccountInfo(PROGRAM_ID);
+      if (!progInfo?.executable) toast('⚠️ Program not found — make sure Phantom is set to Devnet in Settings → Developer Settings','err');
+    } catch(_) {}
     await loadData();
   } catch(e) { toast('Connection rejected','err'); }
 };
@@ -336,7 +352,7 @@ window.disconnectWallet = () => {
   wallet = null; subscriptions = {};
   document.getElementById('wallet-area').innerHTML = '<button class="btn btn-primary" id="connectBtn" onclick="connectWallet()">🔗 Connect Phantom</button>';
   document.getElementById('my-sub-section').style.display = 'none';
-  renderPlans(); // re-render without subscription badges
+  renderPlans();
 };
 
 function renderWalletBadge() {
@@ -550,6 +566,7 @@ window.handleCancel = async (planPKStr, planId) => {
   try {
     const ph = window?.solana;
     if (ph?.isPhantom) {
+      await switchToDevnet();
       const resp = await ph.connect({ onlyIfTrusted: true });
       if (resp?.publicKey) {
         wallet = ph;

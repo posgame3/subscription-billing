@@ -9,11 +9,11 @@
 
 | | |
 |---|---|
-| **Program ID** | `6GbY7sNTbwmvmbGtoaXveRodet88XqJ3d2Qb9KfZXpJ` |
+| **Program ID** | `GE6WxgDtXMG35UbpN5EXZ684NGgcBerFDnU2RRcDac2j` |
 | **Network** | Solana Devnet |
 | **Deployer** | `CF9qQdfCJRPVkGTK4F2vMG1uFGmdPom9ZrYKAakHQB73` |
-| **Deploy TX** | [3ZDtdNvmy...](https://explorer.solana.com/tx/3ZDtdNvmyBUAvNTVvsDMu5kAwJHg9XA1bUCFZoPm1sjk8LFUCEgZyXti5Pt719idKLSDBKKaEqwN3EY2HJCzNMKj?cluster=devnet) |
-| **Explorer** | [View on Solana Explorer](https://explorer.solana.com/address/6GbY7sNTbwmvmbGtoaXveRodet88XqJ3d2Qb9KfZXpJ?cluster=devnet) |
+| **Deploy TX** | [3ZDtdNvmy...](https://explorer.solana.com/tx/47WQcHk9cYX7ifQESWRCp6gc6w5aU9nirbxNTRz135xMQFcZnX4GLWhgndbG8yXB4ktogwhs5WoNvwVN3jETF6bx?cluster=devnet) |
+| **Explorer** | [View on Solana Explorer](https://explorer.solana.com/address/GE6WxgDtXMG35UbpN5EXZ684NGgcBerFDnU2RRcDac2j?cluster=devnet) |
 
 ---
 

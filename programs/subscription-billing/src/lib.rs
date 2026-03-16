@@ -1,7 +1,10 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
-declare_id!("GE6WxgDtXMG35UbpN5EXZ684NGgcBerFDnU2RRcDac2j");
+declare_id!("CHiGNDhvm7KCL3216YqajQMf82h2HUJo9hTPgksbGCZB");
+
+pub mod cpi;
+pub use cpi::{find_plan_address, find_registry_address, find_subscription_address, is_within_grace_period, require_active_subscription};
 
 // ── Error Codes ─────────────────────────────────────────────────────────────
 

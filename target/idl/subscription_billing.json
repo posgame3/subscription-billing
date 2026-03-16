@@ -1,16 +1,16 @@
 {
-  "address": "B4wwyzi7a7wNrZ3UbisfVJjE436yxuVToB1t5A66ttri",
+  "address": "CHiGNDhvm7KCL3216YqajQMf82h2HUJo9hTPgksbGCZB",
   "metadata": {
     "name": "subscription_billing",
     "version": "0.1.0",
     "spec": "0.1.0",
-    "description": "On-chain subscription billing system — Solana/Anchor"
+    "description": "On-chain subscription billing system \u2014 Solana/Anchor"
   },
   "instructions": [
     {
       "name": "cancel",
       "docs": [
-        "Cancel a subscription. Status → Cancelled; subscriber keeps access until period_end."
+        "Cancel a subscription. Status \u2192 Cancelled; subscriber keeps access until period_end."
       ],
       "discriminator": [
         232,
@@ -237,7 +237,7 @@
     {
       "name": "renew",
       "docs": [
-        "Renew an existing subscription — pays for the next period.",
+        "Renew an existing subscription \u2014 pays for the next period.",
         "Can be called when Active (early renewal) or GracePeriod."
       ],
       "discriminator": [
@@ -344,7 +344,7 @@
         {
           "name": "payment",
           "docs": [
-            "Next payment record — payment_id = subscription.payment_count (before increment)"
+            "Next payment record \u2014 payment_id = subscription.payment_count (before increment)"
           ],
           "writable": true,
           "pda": {
@@ -475,7 +475,7 @@
     {
       "name": "subscribe",
       "docs": [
-        "Subscribe to a plan — transfers first payment immediately."
+        "Subscribe to a plan \u2014 transfers first payment immediately."
       ],
       "discriminator": [
         254,
@@ -628,7 +628,7 @@
       "name": "tick",
       "docs": [
         "Advance subscription to GracePeriod or Expired based on clock.",
-        "Anyone can call this — it's a permissionless state transition."
+        "Anyone can call this \u2014 it's a permissionless state transition."
       ],
       "discriminator": [
         92,

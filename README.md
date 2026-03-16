@@ -9,11 +9,20 @@
 
 | | |
 |---|---|
-| **Program ID** | `GE6WxgDtXMG35UbpN5EXZ684NGgcBerFDnU2RRcDac2j` |
+| **Program ID** | `CHiGNDhvm7KCL3216YqajQMf82h2HUJo9hTPgksbGCZB` |
 | **Network** | Solana Devnet |
 | **Deployer** | `CF9qQdfCJRPVkGTK4F2vMG1uFGmdPom9ZrYKAakHQB73` |
-| **Deploy TX** | [3ZDtdNvmy...](https://explorer.solana.com/tx/47WQcHk9cYX7ifQESWRCp6gc6w5aU9nirbxNTRz135xMQFcZnX4GLWhgndbG8yXB4ktogwhs5WoNvwVN3jETF6bx?cluster=devnet) |
-| **Explorer** | [View on Solana Explorer](https://explorer.solana.com/address/GE6WxgDtXMG35UbpN5EXZ684NGgcBerFDnU2RRcDac2j?cluster=devnet) |
+| **Deploy TX** | [222zyEjd...](https://explorer.solana.com/tx/222zyEjd7E56BU9KjhT6y12mYqgkSJQHsQf1ExGu7Q5gydzhqrLwvL8bMmj5QfqmJwrcZGs7VW6f8jGsj7W2AL29?cluster=devnet) |
+| **Explorer** | [View on Solana Explorer](https://explorer.solana.com/address/CHiGNDhvm7KCL3216YqajQMf82h2HUJo9hTPgksbGCZB?cluster=devnet) |
+
+### 🎬 Live Demo Transactions (verified on devnet)
+
+| Instruction | Transaction |
+|---|---|
+| `create_plan` | [42we73fb...](https://explorer.solana.com/tx/42we73fbgLWKuzpHPzRG3r66b494FGn32jiANPKJ8BXMaGG72rDTATxjRaHsLWyvh74rA6B15cBiCzBm6vmj7qiq?cluster=devnet) |
+| `subscribe` | [2Ypocw2a...](https://explorer.solana.com/tx/2Ypocw2a4CtgwqWvfZuhGFQsv5j5B9eNJ23digWHp28NshgtCBz7sdJ6Z3vFw5shXnJRFCuzYndKb36qQ4kjXbpp?cluster=devnet) |
+| `renew` | [3M6ospCZ...](https://explorer.solana.com/tx/3M6ospCZpAopfUNt3YgpBZmQqzFGgVQ9Fz5arf3FKhskMxJdaRzFiQPfz79u5g8hygMtr9taiXbsned34X4c54z5?cluster=devnet) |
+| `cancel` | [51DRSwyP...](https://explorer.solana.com/tx/51DRSwyPwe9AG74AyVnpoQq4qD5SPn6pJ22K8mGc5eprE6MYWHKP1TtZU7fc3qwZhosgCUPnZVDYQ4r78GFQfUDb?cluster=devnet) |
 
 ---
 

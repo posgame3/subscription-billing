@@ -73,11 +73,10 @@ async function main() {
   const payer = Keypair.fromSecretKey(Uint8Array.from(payerJson));
   console.log("Payer:     ", payer.publicKey.toBase58());
 
-  // Generate a fresh program keypair (old B4wwyzi is stuck with BPFLoader2)
-  const { writeFileSync } = await import("fs");
-  const programKeypair = Keypair.generate();
-  writeFileSync(PROGRAM_KEYPAIR_PATH + ".new.json", JSON.stringify(Array.from(programKeypair.secretKey)));
-  console.log("Program ID:", programKeypair.publicKey.toBase58(), "(NEW)");
+  // Use the fixed program keypair (declare_id must match)
+  const programKpJson = JSON.parse(readFileSync(PROGRAM_KEYPAIR_PATH, "utf8"));
+  const programKeypair = Keypair.fromSecretKey(Uint8Array.from(programKpJson));
+  console.log("Program ID:", programKeypair.publicKey.toBase58());
 
   const balance = await connection.getBalance(payer.publicKey);
   console.log("Balance:   ", balance / LAMPORTS_PER_SOL, "SOL");

@@ -1,0 +1,23 @@
+{
+  "name": "subscription-billing",
+  "version": "1.0.0",
+  "description": "On-chain Subscription Billing — Solana/Anchor client",
+  "scripts": {
+    "test": "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts",
+    "build": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@solana/web3.js": "^1.98.4",
+    "@types/chai": "^4.3.0",
+    "@types/mocha": "^10.0.0",
+    "bs58": "^6.0.0",
+    "chai": "^4.3.6",
+    "mocha": "^10.2.0",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
+    "bn.js": "^5.2.1"
+  }
+}

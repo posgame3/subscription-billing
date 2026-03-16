@@ -201,7 +201,7 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:40px 0}
     <div class="section-label">Subscription Plans</div>
     <div class="section-title">Live on Solana Devnet</div>
     <div class="section-sub">These plans are loaded directly from the blockchain. No API. No cache.</div>
-    <div id="plans-container"><div id="loading-plans"><div class="spinner" style="width:32px;height:32px;border-width:3px;margin:0 auto 16px"></div>Connect wallet to load live plans from devnet</div></div>
+    <div id="plans-container"><div id="loading-plans"><div class="spinner" style="width:32px;height:32px;border-width:3px;margin:0 auto 16px"></div>Loading plans from blockchain...</div></div>
     <div id="my-sub-section" style="display:none">
       <div style="margin-top:48px">
         <div class="section-label">My Subscription</div>
@@ -247,9 +247,10 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:40px 0}
 </footer>
 <div id="toast"></div>
 <script type="module">
-import { Buffer } from 'https://esm.sh/buffer@6.0.3';
+// Buffer polyfill must be global BEFORE @solana/web3.js loads
+const { Buffer } = await import('https://esm.sh/buffer@6.0.3');
 globalThis.Buffer = Buffer;
-import { Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram, LAMPORTS_PER_SOL } from 'https://esm.sh/@solana/web3.js@1.95.8';
+const { Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram, LAMPORTS_PER_SOL } = await import('https://esm.sh/@solana/web3.js@1.95.8');
 
 const PROGRAM_ID = new PublicKey('CHiGNDhvm7KCL3216YqajQMf82h2HUJo9hTPgksbGCZB');
 const AUTHORITY  = new PublicKey('CF9qQdfCJRPVkGTK4F2vMG1uFGmdPom9ZrYKAakHQB73');
@@ -263,7 +264,7 @@ const DISC = {
   cancel:    [232,219,223,41,219,236,220,190],
 };
 
-let wallet = null, conn = null, plans = [], subscriptions = {};
+let wallet = null, conn = new Connection(RPC, 'confirmed'), plans = [], subscriptions = {};
 
 // ── Toast ──────────────────────────────────────────────────────────────────
 function toast(msg, type='ok', link=null) {
@@ -324,7 +325,6 @@ window.connectWallet = async () => {
   try {
     await ph.connect();
     wallet = ph;
-    conn = new Connection(RPC, 'confirmed');
     renderWalletBadge();
     toast('✅ Connected: ' + short(wallet.publicKey));
     await loadData();
@@ -333,10 +333,10 @@ window.connectWallet = async () => {
 
 window.disconnectWallet = () => {
   wallet?.disconnect?.();
-  wallet = null; plans = []; subscriptions = {};
+  wallet = null; subscriptions = {};
   document.getElementById('wallet-area').innerHTML = '<button class="btn btn-primary" id="connectBtn" onclick="connectWallet()">🔗 Connect Phantom</button>';
-  document.getElementById('plans-container').innerHTML = '<div id="loading-plans"><div class="spinner" style="width:32px;height:32px;border-width:3px;margin:0 auto 16px"></div>Connect wallet to load live plans from devnet</div>';
   document.getElementById('my-sub-section').style.display = 'none';
+  renderPlans(); // re-render without subscription badges
 };
 
 function renderWalletBadge() {
@@ -355,6 +355,7 @@ async function loadData() {
     const regInfo = await conn.getAccountInfo(regPDA);
     if (!regInfo) { document.getElementById('plans-container').innerHTML = '<div class="empty-state"><div>📭</div>No registry found for this authority</div>'; return; }
     plans = [];
+    subscriptions = {};
     for (let i = 0; i < 20; i++) {
       const [planPDA] = pdaPlan(regPDA, i);
       const info = await conn.getAccountInfo(planPDA);
@@ -540,6 +541,24 @@ window.handleCancel = async (planPKStr, planId) => {
     await loadData();
   } catch(e) { toast('Error: '+e.message.slice(0,80),'err'); }
 };
+
+// ── Auto-init: load plans immediately + auto-reconnect wallet ────────────────
+(async () => {
+  // Load plans from chain without wallet (public data)
+  await loadData();
+  // Try to silently reconnect Phantom if user previously approved
+  try {
+    const ph = window?.solana;
+    if (ph?.isPhantom) {
+      const resp = await ph.connect({ onlyIfTrusted: true });
+      if (resp?.publicKey) {
+        wallet = ph;
+        renderWalletBadge();
+        await loadData(); // reload with subscription data
+      }
+    }
+  } catch (_) { /* user hasn't approved — that's fine */ }
+})();
 </script>
 </body>
 </html>

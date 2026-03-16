@@ -157,6 +157,10 @@ User → Wallet → Solana RPC → subscription_billing program
 
 A standalone HTML5 dApp — zero build step, open directly in browser with Phantom wallet.
 
+**Live demo:** https://posgame3.github.io/subscription-billing/
+
+![BillChain dApp Screenshot](./assets/screenshot.jpg)
+
 **Features:**
 - 🔗 Connect Phantom wallet
 - 📋 View all subscription plans (loaded from on-chain)
@@ -190,9 +194,16 @@ subscription-billing
   ✓ authority pauses plan 0
   ✓ subscribing to paused plan returns PlanInactive
   ✓ authority withdraws fees
+  ✓ tick advances GracePeriod subscription to Expired
+  ✓ renewing an expired subscription returns SubscriptionExpired error
+  ✓ subscribing beyond plan capacity returns PlanAtCapacity
+  ✓ create_plan with price=0 returns InvalidPrice
+  ✓ create_plan with period=0 returns InvalidPeriodDuration
 
-  10 passing
+  15 passing
 ```
+
+> **Note on build warnings:** All 17 compiler warnings originate from Anchor 0.32.1 macro internals (`#[program]`, `#[derive(Accounts)]`) — specifically `anchor-debug`, `custom-heap`, and `custom-panic` cfg flags injected by the macro expander. There are zero warnings in user-authored code.
 
 ---
 
@@ -207,7 +218,7 @@ subscription-billing
 ### Build & Test
 
 ```bash
-git clone https://github.com/yourusername/subscription-billing
+git clone https://github.com/posgame3/subscription-billing
 cd subscription-billing
 
 # Install dependencies
@@ -276,9 +287,11 @@ subscription-billing/
 - All PDAs use deterministic seeds — no authority can forge a subscription
 - `has_one` constraints on all account contexts prevent account substitution attacks
 - All arithmetic uses `checked_add` / `checked_sub` — zero overflow risk
-- `withdraw_fees` requires `has_one = authority` — no unauthorized withdrawals
+- `withdraw_fees` requires `has_one = authority` + rent-exempt minimum check — no unauthorized withdrawals and no account wipe
 - Payment records are **write-once PDAs** — cannot be modified after creation
 - `tick()` is permissionless but only advances state forward, never backward
+- `cancel()` decrements `subscriber_count` — capacity is properly freed when users leave
+- **Upgrade authority:** `CF9qQdfCJRPVkGTK4F2vMG1uFGmdPom9ZrYKAakHQB73` (deployer wallet). For mainnet, upgrade authority should be transferred to a multisig (e.g., Squads) or burned to make the program immutable.
 
 ---
 

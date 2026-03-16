@@ -391,6 +391,7 @@ pub mod subscription_billing {
     }
 
     /// Cancel a subscription. Status → Cancelled; subscriber keeps access until period_end.
+    /// Also decrements subscriber_count so plan capacity is freed.
     pub fn cancel(ctx: Context<Cancel>) -> Result<()> {
         let sub = &mut ctx.accounts.subscription;
         require!(
@@ -402,6 +403,16 @@ pub mod subscription_billing {
             BillingError::SubscriptionExpired
         );
         sub.status = SubscriptionStatus::Cancelled;
+
+        // Free up capacity so new subscribers can take the slot
+        let plan = &mut ctx.accounts.plan;
+        if plan.subscriber_count > 0 {
+            plan.subscriber_count = plan
+                .subscriber_count
+                .checked_sub(1)
+                .ok_or(BillingError::Overflow)?;
+        }
+
         emit!(SubscriptionCancelled {
             subscriber: ctx.accounts.subscriber.key(),
             plan: ctx.accounts.plan.key(),
@@ -457,9 +468,16 @@ pub mod subscription_billing {
         );
         require!(amount <= registry.treasury_balance, BillingError::Overflow);
 
-        **registry.to_account_info().try_borrow_mut_lamports()? = registry
-            .to_account_info()
-            .lamports()
+        // Ensure registry stays above rent-exempt minimum after withdrawal
+        let rent = Rent::get()?;
+        let min_balance = rent.minimum_balance(ServiceRegistry::LEN);
+        let current_lamports = registry.to_account_info().lamports();
+        require!(
+            current_lamports.saturating_sub(amount) >= min_balance,
+            BillingError::Overflow
+        );
+
+        **registry.to_account_info().try_borrow_mut_lamports()? = current_lamports
             .checked_sub(amount)
             .ok_or(BillingError::Overflow)?;
         **ctx
@@ -631,6 +649,11 @@ pub struct Cancel<'info> {
     )]
     pub subscription: Account<'info, Subscription>,
 
+    #[account(
+        mut,
+        seeds = [b"plan", plan.registry.as_ref(), &plan.plan_id.to_le_bytes()],
+        bump = plan.bump,
+    )]
     pub plan: Account<'info, SubscriptionPlan>,
 
     pub subscriber: Signer<'info>,

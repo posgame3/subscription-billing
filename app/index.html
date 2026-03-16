@@ -247,6 +247,8 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:40px 0}
 </footer>
 <div id="toast"></div>
 <script type="module">
+import { Buffer } from 'https://esm.sh/buffer@6.0.3';
+globalThis.Buffer = Buffer;
 import { Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram, LAMPORTS_PER_SOL } from 'https://esm.sh/@solana/web3.js@1.95.8';
 
 const PROGRAM_ID = new PublicKey('CHiGNDhvm7KCL3216YqajQMf82h2HUJo9hTPgksbGCZB');

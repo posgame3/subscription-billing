@@ -153,9 +153,30 @@ User → Wallet → Solana RPC → subscription_billing program
 
 ---
 
+## 🖥️ Frontend (app/index.html)
+
+A standalone HTML5 dApp — zero build step, open directly in browser with Phantom wallet.
+
+**Features:**
+- 🔗 Connect Phantom wallet
+- 📋 View all subscription plans (loaded from on-chain)
+- ⚡ Subscribe to a plan (live transaction)
+- 🔄 Renew subscription
+- ✕ Cancel subscription
+- 🔗 Transaction explorer links after every action
+
+```bash
+# Open locally
+open app/index.html
+# Or serve
+npx serve app/
+```
+
+---
+
 ## 🧪 Tests
 
-10 tests covering full lifecycle:
+15 tests covering full lifecycle:
 
 ```
 subscription-billing

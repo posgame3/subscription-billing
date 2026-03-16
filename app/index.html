@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OnChain Billing — Solana Devnet Demo</title>
+  <style>
+    :root {
+      --bg: #0f0f13;
+      --card: #1a1a24;
+      --border: #2a2a3a;
+      --accent: #9945ff;
+      --green: #14f195;
+      --red: #ff4d4d;
+      --yellow: #fbbf24;
+      --text: #e2e2f0;
+      --muted: #6b6b8a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; }
+    header { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 18px; font-weight: 700; }
+    header span { font-size: 11px; color: var(--green); background: rgba(20,241,149,.1); border: 1px solid rgba(20,241,149,.3); padding: 2px 10px; border-radius: 99px; }
+    main { max-width: 860px; margin: 0 auto; padding: 32px 16px; }
+    .connect-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 48px; text-align: center; }
+    .connect-card h2 { font-size: 24px; margin-bottom: 8px; }
+    .connect-card p { color: var(--muted); margin-bottom: 32px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #7b35e0; }
+    .btn-success { background: rgba(20,241,149,.15); color: var(--green); border: 1px solid rgba(20,241,149,.3); }
+    .btn-success:hover { background: rgba(20,241,149,.25); }
+    .btn-danger { background: rgba(255,77,77,.15); color: var(--red); border: 1px solid rgba(255,77,77,.3); }
+    .btn-danger:hover { background: rgba(255,77,77,.25); }
+    .btn-secondary { background: rgba(255,255,255,.07); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: rgba(255,255,255,.12); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
+    @media(max-width:600px){ .grid { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+    .card h3 { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 16px; }
+    .plan { border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; transition: border-color .15s; }
+    .plan:hover { border-color: var(--accent); }
+    .plan-name { font-weight: 700; font-size: 16px; }
+    .plan-price { color: var(--green); font-size: 14px; margin-top: 4px; }
+    .plan-meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .status-badge { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+    .status-active { background: rgba(20,241,149,.15); color: var(--green); border: 1px solid rgba(20,241,149,.3); }
+    .status-grace { background: rgba(251,191,36,.15); color: var(--yellow); border: 1px solid rgba(251,191,36,.3); }
+    .status-expired { background: rgba(255,77,77,.15); color: var(--red); border: 1px solid rgba(255,77,77,.3); }
+    .status-cancelled { background: rgba(107,107,138,.15); color: var(--muted); border: 1px solid var(--border); }
+    .sub-detail { margin-top: 12px; }
+    .sub-detail div { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px solid var(--border); }
+    .sub-detail div:last-child { border: none; }
+    .sub-detail span:first-child { color: var(--muted); }
+    .tx-link { display: block; margin-top: 8px; font-size: 11px; color: var(--accent); text-decoration: none; word-break: break-all; }
+    .tx-link:hover { text-decoration: underline; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 20px; font-size: 13px; max-width: 360px; z-index: 999; opacity: 0; transform: translateY(10px); transition: all .2s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { border-color: rgba(20,241,149,.4); }
+    .toast.error { border-color: rgba(255,77,77,.4); }
+    .wallet-info { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+    .wallet-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; }
+    .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    #loading { color: var(--muted); text-align: center; padding: 32px; }
+    .program-id { font-size: 11px; color: var(--muted); background: rgba(255,255,255,.04); border-radius: 8px; padding: 8px 12px; margin-top: 16px; font-family: monospace; word-break: break-all; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>⚡ OnChain Billing</h1>
+  <span>Solana Devnet</span>
+</header>
+<main>
+  <div id="app"></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { Connection, PublicKey, SystemProgram, Transaction } from 'https://esm.sh/@solana/web3.js@1.95.8';
+
+const PROGRAM_ID = new PublicKey('CHiGNDhvm7KCL3216YqajQMf82h2HUJo9hTPgksbGCZB');
+const RPC = 'https://api.devnet.solana.com';
+const EXPLORER = sig => `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
+
+// ── Borsh helpers ────────────────────────────────────────────────────────────
+function readU8(buf, off) { return [buf[off], off+1]; }
+function readU32(buf, off) { return [buf[off]|(buf[off+1]<<8)|(buf[off+2]<<16)|(buf[off+3]<<24), off+4]; }
+function readU64(buf, off) {
+  const lo = buf[off]|(buf[off+1]<<8)|(buf[off+2]<<16)|(buf[off+3]<<24);
+  const hi = buf[off+4]|(buf[off+5]<<8)|(buf[off+6]<<16)|(buf[off+7]<<24);
+  return [lo + hi * 4294967296, off+8];
+}
+function readI64(buf, off) { const [v,o] = readU64(buf,off); return [v > 2**63 ? v - 2**64 : v, o]; }
+function readBytes(buf, off, n) { return [buf.slice(off, off+n), off+n]; }
+
+function parsePlan(data) {
+  let off = 8; // skip discriminator
+  const [registry, o1] = readBytes(data, off, 32); off = o1;
+  const [planId, o2] = readU64(data, off); off = o2;
+  const [name, o3] = readBytes(data, off, 32); off = o3;
+  const [price, o4] = readU64(data, off); off = o4;
+  const [period, o5] = readI64(data, off); off = o5;
+  const [maxSubs, o6] = readU32(data, off); off = o6;
+  const [subCount, o7] = readU32(data, off); off = o7;
+  const isActive = data[off];
+  return {
+    registry: new PublicKey(registry),
+    planId, price, period,
+    name: Buffer.from(name).toString('utf8').replace(/\0/g,'').trim(),
+    maxSubs, subCount, isActive: !!isActive
+  };
+}
+
+function parseSub(data) {
+  let off = 8;
+  const [plan] = readBytes(data, off, 32); off += 32;
+  const [subscriber] = readBytes(data, off, 32); off += 32;
+  const [status, o1] = readU8(data, off); off = o1;
+  const [periodStart, o2] = readI64(data, off); off = o2;
+  const [periodEnd, o3] = readI64(data, off); off = o3;
+  const [payCount, o4] = readU32(data, off); off = o4;
+  const [renewalCount, o5] = readU32(data, off); off = o5;
+  return { plan: new PublicKey(plan), subscriber: new PublicKey(subscriber), status, periodStart, periodEnd, payCount, renewalCount };
+}
+
+const STATUS_LABELS = ['Active', 'GracePeriod', 'Expired', 'Cancelled'];
+const STATUS_CLASSES = ['status-active', 'status-grace', 'status-expired', 'status-cancelled'];
+
+function short(pk) { const s = pk.toBase58(); return s.slice(0,4)+'...'+s.slice(-4); }
+function solAmount(lamports) { return (lamports/1e9).toFixed(4)+' SOL'; }
+function periodLabel(secs) {
+  if (secs >= 2592000) return Math.round(secs/2592000)+'mo';
+  if (secs >= 86400) return Math.round(secs/86400)+'d';
+  return secs+'s';
+}
+
+// ── Instruction builders ─────────────────────────────────────────────────────
+function discriminator(name) {
+  // Pre-computed Anchor discriminators (sighash("global:name"))
+  const map = {
+    initialize_registry: [189,181,20,17,174,57,249,59],
+    create_plan:         [77,43,141,254,212,118,41,186],
+    subscribe:           [254,28,191,138,156,179,183,53],
+    renew:               [43,239,15,46,27,7,163,73],
+    cancel:              [232,219,223,41,219,236,220,190],
+    tick:                [92,79,44,8,101,80,63,15],
+    withdraw_fees:       [198,212,171,109,144,215,174,89],
+    set_plan_active:     [215,87,208,194,87,65,181,5],
+  };
+  return new Uint8Array(map[name]);
+}
+
+function encodeU64(n) {
+  const buf = new Uint8Array(8);
+  const view = new DataView(buf.buffer);
+  view.setBigUint64(0, BigInt(Math.floor(n)), true);
+  return buf;
+}
+function encodeI64(n) {
+  const buf = new Uint8Array(8);
+  const view = new DataView(buf.buffer);
+  view.setBigInt64(0, BigInt(Math.floor(n)), true);
+  return buf;
+}
+function encodeU32(n) {
+  const buf = new Uint8Array(4);
+  new DataView(buf.buffer).setUint32(0, n, true);
+  return buf;
+}
+function concat(...arrs) {
+  const len = arrs.reduce((s,a) => s+a.length, 0);
+  const out = new Uint8Array(len);
+  let off = 0;
+  for (const a of arrs) { out.set(a, off); off += a.length; }
+  return out;
+}
+
+// ── State ───────────────────────────────────────────────────────────────────
+let wallet = null;
+let connection = null;
+let plans = [];
+let subscriptions = {};
+
+function toast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show ${type}`;
+  setTimeout(() => el.className = 'toast', 4000);
+}
+
+// ── PDAs ─────────────────────────────────────────────────────────────────────
+function findRegistry(authority) {
+  return PublicKey.findProgramAddressSync([Buffer.from('registry'), authority.toBuffer()], PROGRAM_ID);
+}
+function findPlan(registry, planId) {
+  const idBuf = Buffer.alloc(8);
+  new DataView(idBuf.buffer).setBigUint64(0, BigInt(planId), true);
+  return PublicKey.findProgramAddressSync([Buffer.from('plan'), registry.toBuffer(), idBuf], PROGRAM_ID);
+}
+function findSub(plan, subscriber) {
+  return PublicKey.findProgramAddressSync([Buffer.from('subscription'), plan.toBuffer(), subscriber.toBuffer()], PROGRAM_ID);
+}
+function findPayment(sub, payId) {
+  const buf = Buffer.alloc(4);
+  new DataView(buf.buffer).setUint32(0, payId, true);
+  return PublicKey.findProgramAddressSync([Buffer.from('payment'), sub.toBuffer(), buf], PROGRAM_ID);
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+async function subscribeToPlan(registryPK, planPK) {
+  const [subPDA] = findSub(planPK, wallet.publicKey);
+  const planData = await connection.getAccountInfo(planPK);
+  const plan = parsePlan(planData.data);
+  const [payPDA] = findPayment(subPDA, 0);
+
+  const data = discriminator('subscribe');
+  const keys = [
+    { pubkey: registryPK, isSigner: false, isWritable: true },
+    { pubkey: planPK, isSigner: false, isWritable: true },
+    { pubkey: subPDA, isSigner: false, isWritable: true },
+    { pubkey: payPDA, isSigner: false, isWritable: true },
+    { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+  ];
+  return sendTx([{ programId: PROGRAM_ID, keys, data }]);
+}
+
+async function renewSub(registryPK, planPK, payCount) {
+  const [subPDA] = findSub(planPK, wallet.publicKey);
+  const [payPDA] = findPayment(subPDA, payCount);
+  const data = discriminator('renew');
+  const keys = [
+    { pubkey: registryPK, isSigner: false, isWritable: true },
+    { pubkey: planPK, isSigner: false, isWritable: true },
+    { pubkey: subPDA, isSigner: false, isWritable: true },
+    { pubkey: payPDA, isSigner: false, isWritable: true },
+    { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+  ];
+  return sendTx([{ programId: PROGRAM_ID, keys, data }]);
+}
+
+async function cancelSub(planPK) {
+  const [subPDA] = findSub(planPK, wallet.publicKey);
+  const data = discriminator('cancel');
+  const keys = [
+    { pubkey: planPK, isSigner: false, isWritable: true },
+    { pubkey: subPDA, isSigner: false, isWritable: true },
+    { pubkey: wallet.publicKey, isSigner: true, isWritable: false },
+  ];
+  return sendTx([{ programId: PROGRAM_ID, keys, data }]);
+}
+
+async function sendTx(instructions) {
+  const { blockhash } = await connection.getLatestBlockhash('confirmed');
+  const tx = new Transaction();
+  tx.recentBlockhash = blockhash;
+  tx.feePayer = wallet.publicKey;
+  for (const ix of instructions) tx.add(ix);
+  const signed = await wallet.signTransaction(tx);
+  const sig = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
+  await connection.confirmTransaction(sig, 'confirmed');
+  return sig;
+}
+
+// ── Data loading ──────────────────────────────────────────────────────────────
+async function loadPlans() {
+  // Use authority = payer wallet for registry
+  const [registryPDA] = findRegistry(wallet.publicKey);
+  const regInfo = await connection.getAccountInfo(registryPDA);
+  if (!regInfo) return [];
+
+  const results = [];
+  for (let i = 0; i < 10; i++) {
+    const [planPDA] = findPlan(registryPDA, i);
+    const info = await connection.getAccountInfo(planPDA);
+    if (!info) break;
+    const plan = parsePlan(info.data);
+    results.push({ pda: planPDA, registryPDA, ...plan });
+
+    // Check subscription
+    const [subPDA] = findSub(planPDA, wallet.publicKey);
+    const subInfo = await connection.getAccountInfo(subPDA);
+    if (subInfo) {
+      subscriptions[planPDA.toBase58()] = { pda: subPDA, ...parseSub(subInfo.data) };
+    }
+  }
+  return results;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderApp() {
+  const app = document.getElementById('app');
+  if (!wallet) {
+    app.innerHTML = `
+      <div class="connect-card">
+        <h2>⚡ OnChain Billing</h2>
+        <p>A production-grade SaaS billing engine running entirely on Solana.<br/>No databases. No payment processors. No trust assumptions.</p>
+        <button class="btn btn-primary" onclick="connectWallet()">🔗 Connect Phantom</button>
+        <div class="program-id">Program: CHiGNDhvm7KCL3216YqajQMf82h2HUJo9hTPgksbGCZB</div>
+      </div>`;
+    return;
+  }
+
+  const planCards = plans.map(plan => {
+    const sub = subscriptions[plan.pda.toBase58()];
+    const statusLabel = sub ? STATUS_LABELS[sub.status] : null;
+    const statusClass = sub ? STATUS_CLASSES[sub.status] : null;
+
+    return `
+    <div class="plan">
+      <div style="display:flex;justify-content:space-between;align-items:start;">
+        <div>
+          <div class="plan-name">${plan.name || 'Unnamed Plan'}</div>
+          <div class="plan-price">${solAmount(plan.price)} / ${periodLabel(plan.period)}</div>
+          <div class="plan-meta">${plan.subCount}${plan.maxSubs ? '/'+plan.maxSubs : ''} subscribers · ${plan.isActive ? '🟢 Active' : '🔴 Paused'}</div>
+        </div>
+        ${sub ? `<span class="status-badge ${statusClass}">${statusLabel}</span>` : ''}
+      </div>
+      ${sub ? `
+        <div class="sub-detail">
+          <div><span>Period ends</span><span>${new Date(sub.periodEnd * 1000).toLocaleDateString()}</span></div>
+          <div><span>Renewals</span><span>${sub.renewalCount}</span></div>
+          <div><span>Payments</span><span>${sub.payCount}</span></div>
+        </div>
+        <div class="actions">
+          ${sub.status <= 1 ? `<button class="btn btn-success" onclick="handleRenew('${plan.pda.toBase58()}', '${plan.registryPDA.toBase58()}', ${sub.payCount})">🔄 Renew</button>` : ''}
+          ${sub.status === 0 ? `<button class="btn btn-danger" onclick="handleCancel('${plan.pda.toBase58()}')">✕ Cancel</button>` : ''}
+        </div>
+      ` : `
+        <div class="actions">
+          ${plan.isActive ? `<button class="btn btn-primary" onclick="handleSubscribe('${plan.pda.toBase58()}', '${plan.registryPDA.toBase58()}')">⚡ Subscribe</button>` : '<span style="color:var(--muted);font-size:12px;">Plan paused</span>'}
+        </div>
+      `}
+    </div>`;
+  }).join('');
+
+  app.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+      <div>
+        <h2 style="font-size:20px;">Subscription Plans</h2>
+        <p style="color:var(--muted);font-size:12px;margin-top:4px;">Powered by <a href="https://explorer.solana.com/address/CHiGNDhvm7KCL3216YqajQMf82h2HUJo9hTPgksbGCZB?cluster=devnet" target="_blank" style="color:var(--accent);">on-chain program</a></p>
+      </div>
+      <div style="text-align:right;">
+        <div class="wallet-info"><div class="wallet-dot"></div> ${short(wallet.publicKey)}</div>
+        <button class="btn btn-secondary" style="margin-top:8px;padding:6px 12px;font-size:12px;" onclick="disconnect()">Disconnect</button>
+      </div>
+    </div>
+    ${plans.length === 0 ? '<div id="loading">No plans found. Make sure you\'re the service provider (authority).</div>' : ''}
+    ${planCards}
+    <button class="btn btn-secondary" style="margin-top:16px;font-size:12px;" onclick="refresh()">↻ Refresh</button>
+  `;
+}
+
+// ── Event handlers ──────────────────────────────────────────────────────────
+window.connectWallet = async () => {
+  const phantom = window?.solana;
+  if (!phantom?.isPhantom) { toast('Phantom wallet not found. Install from phantom.app', 'error'); return; }
+  try {
+    const resp = await phantom.connect();
+    wallet = phantom;
+    connection = new Connection(RPC, 'confirmed');
+    renderApp();
+    document.getElementById('app').innerHTML = '<div id="loading">Loading plans...</div>';
+    plans = await loadPlans();
+    renderApp();
+  } catch(e) { toast('Connection rejected', 'error'); }
+};
+
+window.handleSubscribe = async (planPKStr, registryPKStr) => {
+  try {
+    toast('Sending transaction...', 'success');
+    const sig = await subscribeToPlan(new PublicKey(registryPKStr), new PublicKey(planPKStr));
+    toast('✅ Subscribed!', 'success');
+    const link = document.createElement('a');
+    link.href = EXPLORER(sig); link.target = '_blank'; link.className = 'tx-link';
+    link.textContent = '🔗 View transaction: ' + sig.slice(0,20) + '...';
+    document.getElementById('app').prepend(link);
+    setTimeout(refresh, 2000);
+  } catch(e) { toast('Error: ' + e.message?.slice(0,60), 'error'); console.error(e); }
+};
+
+window.handleRenew = async (planPKStr, registryPKStr, payCount) => {
+  try {
+    toast('Renewing...', 'success');
+    const sig = await renewSub(new PublicKey(registryPKStr), new PublicKey(planPKStr), payCount);
+    toast('✅ Renewed!', 'success');
+    setTimeout(refresh, 2000);
+  } catch(e) { toast('Error: ' + e.message?.slice(0,60), 'error'); console.error(e); }
+};
+
+window.handleCancel = async (planPKStr) => {
+  if (!confirm('Cancel subscription?')) return;
+  try {
+    const sig = await cancelSub(new PublicKey(planPKStr));
+    toast('✅ Cancelled', 'success');
+    setTimeout(refresh, 2000);
+  } catch(e) { toast('Error: ' + e.message?.slice(0,60), 'error'); }
+};
+
+window.refresh = async () => {
+  subscriptions = {};
+  plans = await loadPlans();
+  renderApp();
+};
+
+window.disconnect = () => {
+  wallet = null; plans = []; subscriptions = {};
+  renderApp();
+};
+
+renderApp();
+</script>
+</body>
+</html>

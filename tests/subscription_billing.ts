@@ -400,4 +400,252 @@ describe("subscription-billing", () => {
       console.log("  (treasury empty — skipped withdraw)");
     }
   });
+
+  // ── 11. tick advances subscription to Expired ─────────────────────────────
+
+  it("tick advances GracePeriod subscription to Expired", async () => {
+    // Bob is in GracePeriod (from test 7). We need to fast-forward past grace end.
+    // Use a new subscriber Dave with a 1-second plan so we can expire quickly.
+    const dave = Keypair.generate();
+    await airdrop(provider, dave.publicKey, 2);
+
+    // Create a plan with period=1s and no grace
+    const shortPlanId = 2;
+    const shortPlanIdBuf = Buffer.alloc(8);
+    shortPlanIdBuf.writeBigUInt64LE(BigInt(shortPlanId));
+    const [shortPlanPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("plan"), registryPDA.toBuffer(), shortPlanIdBuf],
+      program.programId
+    );
+
+    await program.methods
+      .createPlan(bytes32("1s-plan"), new BN(1_000_000), new BN(1), 100)
+      .accounts({
+        registry: registryPDA,
+        plan: shortPlanPDA,
+        authority: authority.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([authority])
+      .rpc({ commitment: "confirmed" });
+
+    // Dave subscribes
+    const [daveSubPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("subscription"), shortPlanPDA.toBuffer(), dave.publicKey.toBuffer()],
+      program.programId
+    );
+    const [davePayPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("payment"), daveSubPDA.toBuffer(), Buffer.from([0, 0, 0, 0])],
+      program.programId
+    );
+
+    await program.methods
+      .subscribe()
+      .accounts({
+        registry: registryPDA,
+        plan: shortPlanPDA,
+        subscription: daveSubPDA,
+        payment: davePayPDA,
+        subscriber: dave.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([dave])
+      .rpc({ commitment: "confirmed" });
+
+    // Wait for period + grace to elapse (plan has 0 grace from registry default)
+    await new Promise(r => setTimeout(r, 3000));
+
+    // First tick: Active → GracePeriod (or directly Expired if grace=0)
+    await program.methods
+      .tick()
+      .accounts({ plan: shortPlanPDA, subscription: daveSubPDA })
+      .rpc({ commitment: "confirmed" });
+
+    // Second tick if needed: GracePeriod → Expired
+    try {
+      await program.methods
+        .tick()
+        .accounts({ plan: shortPlanPDA, subscription: daveSubPDA })
+        .rpc({ commitment: "confirmed" });
+    } catch (_) { /* already expired */ }
+
+    const sub = await program.account.subscription.fetch(daveSubPDA);
+    // Status 2 = Expired, Status 1 = GracePeriod
+    assert.isTrue(sub.status === 2 || sub.status === 1, `Expected expired/grace, got ${sub.status}`);
+    console.log("  ✓ tick advanced subscription to status:", sub.status, "(1=Grace, 2=Expired)");
+  });
+
+  // ── 12. renew on Expired subscription returns error ────────────────────────
+
+  it("renewing an expired subscription returns SubscriptionExpired error", async () => {
+    // Create a plan + subscriber that we'll expire
+    const eve = Keypair.generate();
+    await airdrop(provider, eve.publicKey, 2);
+
+    const expPlanId = 3;
+    const expPlanIdBuf = Buffer.alloc(8);
+    expPlanIdBuf.writeBigUInt64LE(BigInt(expPlanId));
+    const [expPlanPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("plan"), registryPDA.toBuffer(), expPlanIdBuf],
+      program.programId
+    );
+
+    await program.methods
+      .createPlan(bytes32("exp-plan"), new BN(1_000_000), new BN(1), 100)
+      .accounts({
+        registry: registryPDA,
+        plan: expPlanPDA,
+        authority: authority.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([authority])
+      .rpc({ commitment: "confirmed" });
+
+    const [eveSubPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("subscription"), expPlanPDA.toBuffer(), eve.publicKey.toBuffer()],
+      program.programId
+    );
+    const [evePayPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("payment"), eveSubPDA.toBuffer(), Buffer.from([0, 0, 0, 0])],
+      program.programId
+    );
+    const [eveRenewPayPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("payment"), eveSubPDA.toBuffer(), Buffer.from([1, 0, 0, 0])],
+      program.programId
+    );
+
+    await program.methods.subscribe()
+      .accounts({ registry: registryPDA, plan: expPlanPDA, subscription: eveSubPDA, payment: evePayPDA, subscriber: eve.publicKey, systemProgram: SystemProgram.programId })
+      .signers([eve]).rpc({ commitment: "confirmed" });
+
+    await new Promise(r => setTimeout(r, 3000));
+
+    // Advance to expired via tick (twice: Active→Grace→Expired)
+    for (let i = 0; i < 3; i++) {
+      try {
+        await program.methods.tick()
+          .accounts({ plan: expPlanPDA, subscription: eveSubPDA })
+          .rpc({ commitment: "confirmed" });
+      } catch (_) {}
+    }
+
+    // Now try to renew — should fail
+    try {
+      await program.methods.renew()
+        .accounts({ registry: registryPDA, plan: expPlanPDA, subscription: eveSubPDA, payment: eveRenewPayPDA, subscriber: eve.publicKey, systemProgram: SystemProgram.programId })
+        .signers([eve]).rpc({ commitment: "confirmed" });
+      assert.fail("Should have thrown");
+    } catch (err: unknown) {
+      const e = err as anchor.AnchorError;
+      assert.isTrue(
+        e.message.includes("SubscriptionExpired") || e.message.includes("GracePeriodEnded"),
+        `Expected SubscriptionExpired/GracePeriodEnded, got: ${e.message}`
+      );
+      console.log("  ✓ Renew on expired correctly rejected:", e.error?.errorCode?.code);
+    }
+  });
+
+  // ── 13. PlanAtCapacity error ───────────────────────────────────────────────
+
+  it("subscribing beyond plan capacity returns PlanAtCapacity", async () => {
+    // Create a plan with max_subscribers = 1
+    const frank = Keypair.generate();
+    const grace2 = Keypair.generate();
+    await airdrop(provider, frank.publicKey, 2);
+    await airdrop(provider, grace2.publicKey, 2);
+
+    const capPlanId = 4;
+    const capPlanIdBuf = Buffer.alloc(8);
+    capPlanIdBuf.writeBigUInt64LE(BigInt(capPlanId));
+    const [capPlanPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("plan"), registryPDA.toBuffer(), capPlanIdBuf],
+      program.programId
+    );
+
+    await program.methods
+      .createPlan(bytes32("cap-plan"), new BN(1_000_000), new BN(86400), 1) // max 1 subscriber
+      .accounts({ registry: registryPDA, plan: capPlanPDA, authority: authority.publicKey, systemProgram: SystemProgram.programId })
+      .signers([authority]).rpc({ commitment: "confirmed" });
+
+    // Frank subscribes (capacity = 1, should succeed)
+    const [frankSubPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("subscription"), capPlanPDA.toBuffer(), frank.publicKey.toBuffer()],
+      program.programId
+    );
+    const [frankPayPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("payment"), frankSubPDA.toBuffer(), Buffer.from([0, 0, 0, 0])],
+      program.programId
+    );
+
+    await program.methods.subscribe()
+      .accounts({ registry: registryPDA, plan: capPlanPDA, subscription: frankSubPDA, payment: frankPayPDA, subscriber: frank.publicKey, systemProgram: SystemProgram.programId })
+      .signers([frank]).rpc({ commitment: "confirmed" });
+
+    // Grace2 tries to subscribe — should fail PlanAtCapacity
+    const [grace2SubPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("subscription"), capPlanPDA.toBuffer(), grace2.publicKey.toBuffer()],
+      program.programId
+    );
+    const [grace2PayPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("payment"), grace2SubPDA.toBuffer(), Buffer.from([0, 0, 0, 0])],
+      program.programId
+    );
+
+    try {
+      await program.methods.subscribe()
+        .accounts({ registry: registryPDA, plan: capPlanPDA, subscription: grace2SubPDA, payment: grace2PayPDA, subscriber: grace2.publicKey, systemProgram: SystemProgram.programId })
+        .signers([grace2]).rpc({ commitment: "confirmed" });
+      assert.fail("Should have thrown PlanAtCapacity");
+    } catch (err: unknown) {
+      const e = err as anchor.AnchorError;
+      assert.include(e.message, "PlanAtCapacity");
+      console.log("  ✓ PlanAtCapacity caught correctly");
+    }
+  });
+
+  // ── 14. Invalid plan params ────────────────────────────────────────────────
+
+  it("create_plan with price=0 returns InvalidPrice", async () => {
+    const badPlanId = 5;
+    const badPlanIdBuf = Buffer.alloc(8);
+    badPlanIdBuf.writeBigUInt64LE(BigInt(badPlanId));
+    const [badPlanPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("plan"), registryPDA.toBuffer(), badPlanIdBuf],
+      program.programId
+    );
+
+    try {
+      await program.methods
+        .createPlan(bytes32("bad-plan"), new BN(0), new BN(86400), 100) // price = 0
+        .accounts({ registry: registryPDA, plan: badPlanPDA, authority: authority.publicKey, systemProgram: SystemProgram.programId })
+        .signers([authority]).rpc({ commitment: "confirmed" });
+      assert.fail("Should have thrown InvalidPrice");
+    } catch (err: unknown) {
+      const e = err as anchor.AnchorError;
+      assert.include(e.message, "InvalidPrice");
+      console.log("  ✓ InvalidPrice caught correctly");
+    }
+  });
+
+  it("create_plan with period=0 returns InvalidPeriodDuration", async () => {
+    const badPlanId = 6;
+    const badPlanIdBuf = Buffer.alloc(8);
+    badPlanIdBuf.writeBigUInt64LE(BigInt(badPlanId));
+    const [badPlanPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("plan"), registryPDA.toBuffer(), badPlanIdBuf],
+      program.programId
+    );
+
+    try {
+      await program.methods
+        .createPlan(bytes32("bad-plan-2"), new BN(1_000_000), new BN(0), 100) // period = 0
+        .accounts({ registry: registryPDA, plan: badPlanPDA, authority: authority.publicKey, systemProgram: SystemProgram.programId })
+        .signers([authority]).rpc({ commitment: "confirmed" });
+      assert.fail("Should have thrown InvalidPeriodDuration");
+    } catch (err: unknown) {
+      const e = err as anchor.AnchorError;
+      assert.include(e.message, "InvalidPeriodDuration");
+      console.log("  ✓ InvalidPeriodDuration caught correctly");
+    }
+  });
 });

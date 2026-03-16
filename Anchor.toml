@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-subscription_billing = "B4wwyzi7a7wNrZ3UbisfVJjE436yxuVToB1t5A66ttri"
+subscription_billing = "6GbY7sNTbwmvmbGtoaXveRodet88XqJ3d2Qb9KfZXpJ"
 
 [programs.devnet]
-subscription_billing = "B4wwyzi7a7wNrZ3UbisfVJjE436yxuVToB1t5A66ttri"
+subscription_billing = "6GbY7sNTbwmvmbGtoaXveRodet88XqJ3d2Qb9KfZXpJ"
 
 [registry]
 url = "https://api.apr.dev"

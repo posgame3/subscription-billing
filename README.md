@@ -9,9 +9,11 @@
 
 | | |
 |---|---|
-| **Program ID** | `B4wwyzi7a7wNrZ3UbisfVJjE436yxuVToB1t5A66ttri` |
+| **Program ID** | `6GbY7sNTbwmvmbGtoaXveRodet88XqJ3d2Qb9KfZXpJ` |
 | **Network** | Solana Devnet |
-| **Explorer** | [View on Solana Explorer](https://explorer.solana.com/address/B4wwyzi7a7wNrZ3UbisfVJjE436yxuVToB1t5A66ttri?cluster=devnet) |
+| **Deployer** | `CF9qQdfCJRPVkGTK4F2vMG1uFGmdPom9ZrYKAakHQB73` |
+| **Deploy TX** | [3ZDtdNvmy...](https://explorer.solana.com/tx/3ZDtdNvmyBUAvNTVvsDMu5kAwJHg9XA1bUCFZoPm1sjk8LFUCEgZyXti5Pt719idKLSDBKKaEqwN3EY2HJCzNMKj?cluster=devnet) |
+| **Explorer** | [View on Solana Explorer](https://explorer.solana.com/address/6GbY7sNTbwmvmbGtoaXveRodet88XqJ3d2Qb9KfZXpJ?cluster=devnet) |
 
 ---
 
@@ -42,6 +44,7 @@ ServiceRegistry  [PDA: "registry" + authority]
 - `plan_id` as `u64 LE bytes` in seeds = natural ordering + infinite plans
 - Payment records are **append-only** — tamper-proof billing history
 - Zero cross-program state pollution: each PDA is fully self-describing
+- **No `zero_copy` needed**: all accounts are small (65–106 bytes), so heap allocation via Anchor's default `AccountLoader` has zero overhead. `zero_copy` would add unsafe complexity with no measurable gain at these sizes.
 
 ### Account Sizes
 

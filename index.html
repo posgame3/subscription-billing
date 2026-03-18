@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>BillChain — Stripe on-chain, built on Solana</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0a0f;--bg2:#0d0d14;--card:#12121a;--card2:#16161f;--border:#1e1e2e;--purple:#9945ff;--green:#14f195;--red:#ff4d6a;--yellow:#f5c518;--text:#e8e8f0;--muted:#5c5c7a;--muted2:#8888aa}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;line-height:1.6;min-height:100vh}
+a{color:inherit;text-decoration:none}
+.container{max-width:1100px;margin:0 auto;padding:0 20px}
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:14px 0}
+.nav-inner{display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--purple),var(--green));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.nav-badge{font-size:11px;background:rgba(20,241,149,.1);color:var(--green);border:1px solid rgba(20,241,149,.25);padding:2px 9px;border-radius:99px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:.15s all}
+.btn-primary{background:linear-gradient(135deg,var(--purple),#7b2cf0);color:#fff}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px)}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-outline:hover{border-color:var(--purple);color:var(--purple)}
+.btn-green{background:linear-gradient(135deg,var(--green),#0ed47e);color:#0a0a0f}
+.btn-green:hover{opacity:.88}
+.btn-danger{background:rgba(255,77,106,.12);color:var(--red);border:1px solid rgba(255,77,106,.25)}
+.btn-danger:hover{background:rgba(255,77,106,.2)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
+.btn-sm{padding:7px 14px;font-size:13px}
+/* HERO */
+.hero{padding:130px 0 80px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(153,69,255,.18),transparent);pointer-events:none}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--green);background:rgba(20,241,149,.07);border:1px solid rgba(20,241,149,.2);padding:4px 14px;border-radius:99px;margin-bottom:24px}
+.hero h1{font-size:clamp(36px,6vw,72px);font-weight:900;line-height:1.1;letter-spacing:-.03em;margin-bottom:20px}
+.hero h1 span{background:linear-gradient(135deg,var(--purple),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:18px;color:var(--muted2);max-width:560px;margin:0 auto 36px}
+.hero-cta{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
+.stats{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:48px}
+.stat-chip{background:var(--card);border:1px solid var(--border);border-radius:99px;padding:6px 18px;font-size:13px;display:flex;align-items:center;gap:6px}
+.stat-chip .val{font-weight:700;color:var(--green)}
+/* SECTIONS */
+section{padding:80px 0}
+.section-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--purple);margin-bottom:10px}
+.section-title{font-size:clamp(26px,4vw,40px);font-weight:800;letter-spacing:-.02em;margin-bottom:14px}
+.section-sub{color:var(--muted2);font-size:16px;max-width:540px}
+/* HOW IT WORKS */
+.how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px}
+@media(max-width:680px){.how-grid{grid-template-columns:1fr}}
+.how-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;transition:.2s}
+.how-card:hover{border-color:var(--purple);transform:translateY(-3px)}
+.how-num{width:40px;height:40px;background:linear-gradient(135deg,var(--purple),#7b2cf0);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;margin-bottom:20px}
+.how-card h3{font-size:17px;font-weight:700;margin-bottom:8px}
+.how-card p{font-size:14px;color:var(--muted2);line-height:1.6}
+/* COMPARISON TABLE */
+.compare-wrap{margin-top:48px;background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.compare-head{display:grid;grid-template-columns:1.5fr 1fr 1fr;background:var(--card2);border-bottom:1px solid var(--border)}
+.compare-head div{padding:16px 24px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.compare-head div:nth-child(2){color:var(--red)}
+.compare-head div:nth-child(3){color:var(--green)}
+.compare-row{display:grid;grid-template-columns:1.5fr 1fr 1fr;border-bottom:1px solid var(--border)}
+.compare-row:last-child{border:none}
+.compare-row div{padding:14px 24px;font-size:14px;align-items:center;display:flex}
+.compare-row div:first-child{color:var(--muted2)}
+.compare-row div:nth-child(2){color:var(--muted)}
+.compare-row div:nth-child(3){color:var(--green)}
+@media(max-width:600px){.compare-head,.compare-row{grid-template-columns:1fr 1fr}.compare-head div:first-child,.compare-row div:first-child{display:none}}
+/* PLANS */
+.plans-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;margin-top:40px}
+.plan-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;position:relative;transition:.2s}
+.plan-card.featured{border-color:var(--purple);background:linear-gradient(145deg,var(--card),rgba(153,69,255,.06))}
+.plan-card.featured::before{content:'Popular';position:absolute;top:-1px;right:20px;background:var(--purple);color:#fff;font-size:11px;font-weight:700;padding:3px 12px;border-radius:0 0 8px 8px}
+.plan-name{font-size:20px;font-weight:800;margin-bottom:6px}
+.plan-price{font-size:32px;font-weight:900;line-height:1;margin:16px 0 4px}
+.plan-price span{font-size:16px;font-weight:400;color:var(--muted2)}
+.plan-period{font-size:13px;color:var(--muted2);margin-bottom:20px}
+.plan-features{list-style:none;margin-bottom:24px}
+.plan-features li{font-size:14px;padding:5px 0;color:var(--muted2);display:flex;align-items:center;gap:8px}
+.plan-features li::before{content:'✓';color:var(--green);font-weight:700}
+.plan-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+/* MY SUB */
+.sub-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px;margin-top:32px}
+.sub-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.sub-title{font-size:20px;font-weight:800}
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:99px;font-size:13px;font-weight:700}
+.status-active{background:rgba(20,241,149,.12);color:var(--green);border:1px solid rgba(20,241,149,.25)}
+.status-grace{background:rgba(245,197,24,.12);color:var(--yellow);border:1px solid rgba(245,197,24,.25)}
+.status-expired{background:rgba(255,77,106,.12);color:var(--red);border:1px solid rgba(255,77,106,.25)}
+.status-cancelled{background:rgba(92,92,122,.12);color:var(--muted2);border:1px solid var(--border)}
+.sub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.sub-stat{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px}
+.sub-stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.sub-stat-val{font-size:18px;font-weight:700}
+.progress-wrap{margin-bottom:24px}
+.progress-label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted2);margin-bottom:8px}
+.progress-bar{height:8px;background:var(--border);border-radius:99px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--green));border-radius:99px;transition:.5s width}
+.sub-actions{display:flex;gap:12px;flex-wrap:wrap}
+/* FOOTER */
+footer{background:var(--card);border-top:1px solid var(--border);padding:40px 0}
+.footer-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px}
+.footer-logo{font-weight:800;font-size:18px}
+.footer-links{display:flex;gap:20px;font-size:13px;color:var(--muted2)}
+.footer-links a:hover{color:var(--text)}
+.footer-program{font-family:monospace;font-size:11px;color:var(--muted);background:var(--bg);border:1px solid var(--border);padding:6px 14px;border-radius:8px}
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:380px}
+.toast-item{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 18px;font-size:13px;animation:slideIn .2s ease;pointer-events:all}
+.toast-item.ok{border-color:rgba(20,241,149,.4)}
+.toast-item.err{border-color:rgba(255,77,106,.4)}
+.toast-item a{color:var(--purple);display:block;margin-top:4px;font-size:12px}
+@keyframes slideIn{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+/* WALLET BADGE */
+.wallet-badge{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted2)}
+.wallet-dot{width:8px;height:8px;background:var(--green);border-radius:50%;box-shadow:0 0 8px var(--green)}
+/* LOADING SPINNER */
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading-plans{text-align:center;padding:40px;color:var(--muted2)}
+.empty-state{text-align:center;padding:48px;color:var(--muted2)}
+.empty-state div{font-size:40px;margin-bottom:12px}
+</style>
+</head>
+<body>
+<nav>
+  <div class="container nav-inner">
+    <div class="logo"><div class="logo-icon">◎</div>BillChain<span class="nav-badge">Devnet</span></div>
+    <div id="wallet-area">
+      <button class="btn btn-primary" id="connectBtn" onclick="connectWallet()">🔗 Connect Phantom</button>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-eyebrow">⚡ Built on Solana · Anchor 0.32</div>
+    <h1>Stripe.<br/><span>Rebuilt On-Chain.</span></h1>
+    <p>Production-grade SaaS billing with zero databases, zero payment processors, and zero trust assumptions. Subscriptions as PDAs. Payments as immutable audit logs.</p>
+    <div class="hero-cta">
+      <button class="btn btn-primary" style="font-size:16px;padding:14px 28px" onclick="document.getElementById('plans').scrollIntoView({behavior:'smooth'})">View Plans ↓</button>
+      <a href="https://github.com/posgame3/subscription-billing" target="_blank" class="btn btn-outline">GitHub →</a>
+    </div>
+    <div class="stats">
+      <div class="stat-chip">⚡ <span class="val">~15K CU</span> per instruction</div>
+      <div class="stat-chip">💸 <span class="val">~$0.001</span> per transaction</div>
+      <div class="stat-chip">🚫 <span class="val">No Middlemen</span></div>
+      <div class="stat-chip">🔒 <span class="val">Trustless</span> · Permissionless</div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="container">
+    <div class="section-label">How it works</div>
+    <div class="section-title">Three steps. Fully on-chain.</div>
+    <div class="section-sub">No backend. No database. Just Solana PDAs and cryptographic guarantees.</div>
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="how-num">1</div>
+        <h3>Connect Wallet</h3>
+        <p>Connect your Phantom wallet. Your public key becomes your identity — no accounts, no passwords, no email required.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">2</div>
+        <h3>Choose a Plan</h3>
+        <p>Plans are stored as Program Derived Addresses on Solana. Price, period, and capacity are enforced by smart contract — immutable once set.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">3</div>
+        <h3>Subscribe On-Chain</h3>
+        <p>One atomic transaction transfers SOL and creates your Subscription PDA. Every payment is an immutable PaymentRecord — a permanent, auditable on-chain receipt.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="compare" style="background:var(--bg2)">
+  <div class="container">
+    <div class="section-label">Comparison</div>
+    <div class="section-title">Web2 Stripe vs On-Chain BillChain</div>
+    <div class="section-sub">Why rebuild billing on Solana? Here's exactly what you gain — and what you trade off.</div>
+    <div class="compare-wrap">
+      <div class="compare-head">
+        <div>Dimension</div>
+        <div>❌ Stripe (Web2)</div>
+        <div>✅ BillChain (On-Chain)</div>
+      </div>
+      <div class="compare-row"><div>Trust Model</div><div>Stripe TOS, bank risk, centralized</div><div>Trustless — code is law</div></div>
+      <div class="compare-row"><div>Transaction Fee</div><div>2.9% + $0.30 per payment</div><div>~$0.001 flat, always</div></div>
+      <div class="compare-row"><div>Censorship</div><div>Account can be frozen anytime</div><div>Permissionless — no one can stop you</div></div>
+      <div class="compare-row"><div>Audit Trail</div><div>Stripe dashboard (their data)</div><div>On-chain PaymentRecord PDAs, forever</div></div>
+      <div class="compare-row"><div>Composability</div><div>REST API, webhooks</div><div>Direct CPI from any Solana program</div></div>
+      <div class="compare-row"><div>Downtime Risk</div><div>Stripe outages affect your revenue</div><div>Solana 99.9% uptime, no single point</div></div>
+      <div class="compare-row"><div>PCI Compliance</div><div>Required ($$$)</div><div>Not applicable — no card data</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="plans">
+  <div class="container">
+    <div class="section-label">Subscription Plans</div>
+    <div class="section-title">Live on Solana Devnet</div>
+    <div class="section-sub">These plans are loaded directly from the blockchain. No API. No cache.</div>
+    <div id="plans-container"><div id="loading-plans"><div class="spinner" style="width:32px;height:32px;border-width:3px;margin:0 auto 16px"></div>Loading plans from blockchain...</div></div>
+    <div id="my-sub-section" style="display:none">
+      <div style="margin-top:48px">
+        <div class="section-label">My Subscription</div>
+        <div class="section-title" style="font-size:26px">Your Current Plan</div>
+      </div>
+      <div id="my-sub-content"></div>
+    </div>
+  </div>
+</section>
+
+<section id="architecture" style="background:var(--bg2)">
+  <div class="container">
+    <div class="section-label">Architecture</div>
+    <div class="section-title">4-Level PDA Hierarchy</div>
+    <div class="section-sub">Each account is a Program Derived Address — deterministically findable, perfectly isolated, and zero-collision by design.</div>
+    <div style="margin-top:40px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;font-family:monospace;font-size:13px;color:var(--muted2);line-height:2;overflow-x:auto">
+      <div style="color:var(--green)">ServiceRegistry</div>
+      <div style="padding-left:24px;color:var(--muted)">seeds: ["registry", authority]</div>
+      <div style="padding-left:24px;color:var(--text)">├── SubscriptionPlan[0]</div>
+      <div style="padding-left:48px;color:var(--muted)">seeds: ["plan", registry, plan_id_u64_le]</div>
+      <div style="padding-left:48px">│   └── Subscription[subscriber]</div>
+      <div style="padding-left:72px;color:var(--muted)">seeds: ["subscription", plan, subscriber]</div>
+      <div style="padding-left:72px">│       ├── PaymentRecord[0] <span style="color:var(--muted)">← immutable audit log</span></div>
+      <div style="padding-left:72px">│       └── PaymentRecord[n]</div>
+      <div style="padding-left:24px;color:var(--text)">└── SubscriptionPlan[1] ...</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container footer-inner">
+    <div>
+      <div class="footer-logo">◎ BillChain</div>
+      <div style="font-size:12px;color:var(--muted2);margin-top:4px">Solana Devnet · Anchor 0.32.1</div>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/posgame3/subscription-billing" target="_blank">GitHub</a>
+      <a href="https://explorer.solana.com/address/CHiGNDhvm7KCL3216YqajQMf82h2HUJo9hTPgksbGCZB?cluster=devnet" target="_blank">Explorer</a>
+      <a href="./article.html">Article</a>
+      <a href="https://explorer.solana.com/tx/222zyEjd7E56BU9KjhT6y12mYqgkSJQHsQf1ExGu7Q5gydzhqrLwvL8bMmj5QfqmJwrcZGs7VW6f8jGsj7W2AL29?cluster=devnet" target="_blank">Deploy TX</a>
+    </div>
+    <div class="footer-program">CHiGNDhvm7KCL3216YqajQMf82h2HUJo9hTPgksbGCZB</div>
+  </div>
+</footer>
+<div id="toast"></div>
+<script type="module">
+// Buffer polyfill must be global BEFORE @solana/web3.js loads
+const { Buffer } = await import('https://esm.sh/buffer@6.0.3');
+globalThis.Buffer = Buffer;
+const { Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram, LAMPORTS_PER_SOL } = await import('https://esm.sh/@solana/web3.js@1.95.8');
+
+const PROGRAM_ID = new PublicKey('CHiGNDhvm7KCL3216YqajQMf82h2HUJo9hTPgksbGCZB');
+const AUTHORITY  = new PublicKey('CF9qQdfCJRPVkGTK4F2vMG1uFGmdPom9ZrYKAakHQB73');
+const RPC = 'https://api.devnet.solana.com';
+const EXPLORER = s => `https://explorer.solana.com/tx/${s}?cluster=devnet`;
+
+// Discriminators sha256("global:ix_name")[0..8]
+const DISC = {
+  subscribe: [254,28,191,138,156,179,183,53],
+  renew:     [43,239,15,46,27,7,163,73],
+  cancel:    [232,219,223,41,219,236,220,190],
+};
+
+let wallet = null, conn = new Connection(RPC, 'confirmed'), plans = [], subscriptions = {};
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function toast(msg, type='ok', link=null) {
+  const wrap = document.getElementById('toast');
+  const el = document.createElement('div');
+  el.className = `toast-item ${type}`;
+  el.innerHTML = msg + (link ? `<a href="${link}" target="_blank">🔗 View on Explorer →</a>` : '');
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 6000);
+}
+
+// ── PDA helpers ─────────────────────────────────────────────────────────────
+function pdaRegistry()          { return PublicKey.findProgramAddressSync([Buffer.from('registry'), AUTHORITY.toBuffer()], PROGRAM_ID); }
+function pdaPlan(reg, id)       { const b=Buffer.alloc(8); new DataView(b.buffer).setBigUint64(0,BigInt(id),true); return PublicKey.findProgramAddressSync([Buffer.from('plan'),reg.toBuffer(),b],PROGRAM_ID); }
+function pdaSub(plan, sub)      { return PublicKey.findProgramAddressSync([Buffer.from('subscription'),plan.toBuffer(),sub.toBuffer()],PROGRAM_ID); }
+function pdaPayment(sub, idx)   { const b=Buffer.alloc(4); new DataView(b.buffer).setUint32(0,idx,true); return PublicKey.findProgramAddressSync([Buffer.from('payment'),sub.toBuffer(),b],PROGRAM_ID); }
+
+// ── Account parsers ──────────────────────────────────────────────────────────
+function parsePlan(data) {
+  const dv = new DataView(data.buffer, data.byteOffset);
+  let o = 8;
+  const registry = new PublicKey(data.slice(o,o+32)); o+=32;
+  const planId   = Number(dv.getBigUint64(o,true)); o+=8;
+  const name     = Buffer.from(data.slice(o,o+32)).toString('utf8').replace(/\0/g,'').trim(); o+=32;
+  const price    = Number(dv.getBigUint64(o,true)); o+=8;
+  const period   = Number(dv.getBigInt64(o,true)); o+=8;
+  const maxSubs  = dv.getUint32(o,true); o+=4;
+  const subCount = dv.getUint32(o,true); o+=4;
+  const isActive = data[o];
+  return { registry, planId, name, price, period, maxSubs, subCount, isActive: !!isActive };
+}
+
+function parseSub(data) {
+  const dv = new DataView(data.buffer, data.byteOffset);
+  let o = 8;
+  const plan       = new PublicKey(data.slice(o,o+32)); o+=32;
+  const subscriber = new PublicKey(data.slice(o,o+32)); o+=32;
+  const status     = data[o]; o++;
+  const periodStart= Number(dv.getBigInt64(o,true)); o+=8;
+  const periodEnd  = Number(dv.getBigInt64(o,true)); o+=8;
+  const payCount   = dv.getUint32(o,true); o+=4;
+  const renewCount = dv.getUint32(o,true);
+  return { plan, subscriber, status, periodStart, periodEnd, payCount, renewCount };
+}
+
+// ── Format helpers ───────────────────────────────────────────────────────────
+function fmtSOL(l)   { return '◎ ' + (l/LAMPORTS_PER_SOL).toFixed(4); }
+function fmtPeriod(s){ if(s>=2592000) return Math.round(s/2592000)+' month'; if(s>=604800) return Math.round(s/604800)+' week'; if(s>=86400) return Math.round(s/86400)+' day'; return s+'s'; }
+function fmtDate(ts) { return new Date(ts*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function short(pk)   { const s=pk.toBase58(); return s.slice(0,4)+'...'+s.slice(-4); }
+const STATUS = ['Active','Grace Period','Expired','Cancelled'];
+const STATUS_CLS = ['status-active','status-grace','status-expired','status-cancelled'];
+
+// ── Wallet ───────────────────────────────────────────────────────────────────
+async function switchToDevnet() {
+  try {
+    const ph = window?.solana;
+    if (!ph?.isPhantom) return;
+    if (ph.request) {
+      await ph.request({ method: 'changeNetwork', params: { network: 'devnet' } });
+    }
+  } catch (_) { /* user may reject or method unavailable — non-blocking */ }
+}
+
+window.connectWallet = async () => {
+  const ph = window?.solana;
+  if (!ph?.isPhantom) { toast('Phantom wallet not found — install at <a href="https://phantom.app" target="_blank">phantom.app</a>','err'); return; }
+  try {
+    await switchToDevnet();
+    await ph.connect();
+    wallet = ph;
+    renderWalletBadge();
+    toast('✅ Connected on Devnet: ' + short(wallet.publicKey));
+    // Verify program reachable on devnet
+    try {
+      const progInfo = await conn.getAccountInfo(PROGRAM_ID);
+      if (!progInfo?.executable) toast('⚠️ Program not found — make sure Phantom is set to Devnet in Settings → Developer Settings','err');
+    } catch(_) {}
+    await loadData();
+  } catch(e) { toast('Connection rejected','err'); }
+};
+
+window.disconnectWallet = () => {
+  wallet?.disconnect?.();
+  wallet = null; subscriptions = {};
+  document.getElementById('wallet-area').innerHTML = '<button class="btn btn-primary" id="connectBtn" onclick="connectWallet()">🔗 Connect Phantom</button>';
+  document.getElementById('my-sub-section').style.display = 'none';
+  renderPlans();
+};
+
+function renderWalletBadge() {
+  document.getElementById('wallet-area').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="wallet-badge"><div class="wallet-dot"></div>${short(wallet.publicKey)}</div>
+      <button class="btn btn-sm btn-outline" onclick="disconnectWallet()">Disconnect</button>
+    </div>`;
+}
+
+// ── Load data ────────────────────────────────────────────────────────────────
+async function loadData() {
+  document.getElementById('plans-container').innerHTML = '<div id="loading-plans"><div class="spinner" style="width:32px;height:32px;border-width:3px;margin:0 auto 16px"></div>Loading from blockchain...</div>';
+  try {
+    const [regPDA] = pdaRegistry();
+    const regInfo = await conn.getAccountInfo(regPDA);
+    if (!regInfo) { document.getElementById('plans-container').innerHTML = '<div class="empty-state"><div>📭</div>No registry found for this authority</div>'; return; }
+    plans = [];
+    subscriptions = {};
+    for (let i = 0; i < 20; i++) {
+      const [planPDA] = pdaPlan(regPDA, i);
+      const info = await conn.getAccountInfo(planPDA);
+      if (!info) break;
+      const plan = parsePlan(new Uint8Array(info.data));
+      plans.push({ pda: planPDA, regPDA, ...plan });
+      if (wallet) {
+        const [subPDA] = pdaSub(planPDA, wallet.publicKey);
+        const subInfo = await conn.getAccountInfo(subPDA);
+        if (subInfo) subscriptions[planPDA.toBase58()] = { pda: subPDA, ...parseSub(new Uint8Array(subInfo.data)) };
+      }
+    }
+    renderPlans();
+    renderMySub();
+  } catch(e) { document.getElementById('plans-container').innerHTML = `<div class="empty-state"><div>⚠️</div>${e.message}</div>`; }
+}
+
+// ── Render plans ─────────────────────────────────────────────────────────────
+function renderPlans() {
+  const sub = Object.values(subscriptions)[0];
+  const html = plans.length === 0
+    ? '<div class="empty-state"><div>📭</div>No plans found on-chain</div>'
+    : `<div class="plans-grid">${plans.map((p,i)=>planCard(p,i)).join('')}</div>`;
+  document.getElementById('plans-container').innerHTML = html;
+}
+
+function planCard(p, i) {
+  const sub = subscriptions[p.pda.toBase58()];
+  const hasSub = !!sub && sub.status <= 1;
+  return `
+  <div class="plan-card ${i===0?'featured':''}">
+    <div class="plan-name">${p.name || 'Plan '+p.planId}</div>
+    <div class="plan-price">${(p.price/LAMPORTS_PER_SOL).toFixed(4)}<span> SOL</span></div>
+    <div class="plan-period">per ${fmtPeriod(p.period)}</div>
+    <ul class="plan-features">
+      <li>Trustless — no middlemen</li>
+      <li>Immutable payment records</li>
+      <li>CPI-composable access control</li>
+      <li>${p.maxSubs > 0 ? p.maxSubs+' max subscribers' : 'Unlimited subscribers'}</li>
+    </ul>
+    <div class="plan-meta">
+      <span>👥 ${p.subCount}${p.maxSubs?' / '+p.maxSubs:''} subscribers</span>
+      <span>${p.isActive ? '🟢 Active' : '🔴 Paused'}</span>
+    </div>
+    <div style="margin-top:16px">
+      ${hasSub
+        ? `<div style="display:flex;gap:8px;align-items:center"><span class="status-badge ${STATUS_CLS[sub.status]}">${STATUS[sub.status]}</span><button class="btn btn-sm btn-outline" onclick="scrollToMySub()">View details ↓</button></div>`
+        : (p.isActive
+            ? `<button class="btn btn-green" style="width:100%;justify-content:center" id="sub-btn-${p.planId}" onclick="handleSubscribe('${p.pda.toBase58()}','${p.regPDA.toBase58()}',${p.planId})">⚡ Subscribe — ${(p.price/LAMPORTS_PER_SOL).toFixed(4)} SOL</button>`
+            : `<button class="btn btn-outline" disabled style="width:100%;justify-content:center">Plan Paused</button>`)
+      }
+    </div>
+  </div>`;
+}
+
+window.scrollToMySub = () => document.getElementById('my-sub-section').scrollIntoView({behavior:'smooth'});
+
+// ── Render my sub ─────────────────────────────────────────────────────────────
+function renderMySub() {
+  const subs = Object.entries(subscriptions);
+  if (subs.length === 0) { document.getElementById('my-sub-section').style.display='none'; return; }
+  document.getElementById('my-sub-section').style.display = 'block';
+  const cards = subs.map(([planPK, sub]) => {
+    const plan = plans.find(p => p.pda.toBase58() === planPK);
+    if (!plan) return '';
+    const now = Date.now()/1000;
+    const total = sub.periodEnd - sub.periodStart;
+    const elapsed = now - sub.periodStart;
+    const pct = Math.min(100, Math.max(0, (elapsed/total)*100));
+    const daysLeft = Math.max(0, Math.round((sub.periodEnd - now)/86400));
+    return `
+    <div class="sub-card">
+      <div class="sub-header">
+        <div class="sub-title">${plan.name || 'Plan '+plan.planId}</div>
+        <span class="status-badge ${STATUS_CLS[sub.status]}">${STATUS[sub.status]}</span>
+      </div>
+      <div class="sub-grid">
+        <div class="sub-stat"><div class="sub-stat-label">Price</div><div class="sub-stat-val">${fmtSOL(plan.price)}</div></div>
+        <div class="sub-stat"><div class="sub-stat-label">Period</div><div class="sub-stat-val">${fmtPeriod(plan.period)}</div></div>
+        <div class="sub-stat"><div class="sub-stat-label">Renewals</div><div class="sub-stat-val">${sub.renewCount}</div></div>
+        <div class="sub-stat"><div class="sub-stat-label">Payments</div><div class="sub-stat-val">${sub.payCount}</div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Period Progress</span><span>${daysLeft > 0 ? daysLeft+' days left' : 'Expired'} · ends ${fmtDate(sub.periodEnd)}</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      </div>
+      <div class="sub-actions">
+        ${sub.status <= 1 ? `<button class="btn btn-green" id="renew-btn-${plan.planId}" onclick="handleRenew('${planPK}','${plan.regPDA.toBase58()}',${sub.payCount},${plan.planId})">🔄 Renew — ${fmtSOL(plan.price)}</button>` : ''}
+        ${sub.status === 0 ? `<button class="btn btn-danger" id="cancel-btn-${plan.planId}" onclick="handleCancel('${planPK}',${plan.planId})">✕ Cancel</button>` : ''}
+        <a href="https://explorer.solana.com/address/${sub.pda.toBase58()}?cluster=devnet" target="_blank" class="btn btn-outline btn-sm">View PDA ↗</a>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('my-sub-content').innerHTML = cards;
+}
+
+// ── Transactions ──────────────────────────────────────────────────────────────
+async function sendTx(instructions, btnId) {
+  const btn = btnId ? document.getElementById(btnId) : null;
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Sending...'; }
+  try {
+    const { blockhash } = await conn.getLatestBlockhash('confirmed');
+    const tx = new Transaction(); tx.recentBlockhash = blockhash; tx.feePayer = wallet.publicKey;
+    instructions.forEach(ix => tx.add(ix));
+    const signed = await wallet.signTransaction(tx);
+    const sig = await conn.sendRawTransaction(signed.serialize());
+    await conn.confirmTransaction(sig, 'confirmed');
+    return sig;
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = btn.dataset.orig || 'Action'; }
+  }
+}
+
+window.handleSubscribe = async (planPKStr, regPKStr, planId) => {
+  if (!wallet) { toast('Connect your wallet first','err'); return; }
+  const btnId = 'sub-btn-'+planId;
+  const btn = document.getElementById(btnId);
+  if (btn) { btn.dataset.orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Confirming...'; }
+  try {
+    const planPK = new PublicKey(planPKStr);
+    const regPK  = new PublicKey(regPKStr);
+    const [subPDA] = pdaSub(planPK, wallet.publicKey);
+    const [payPDA] = pdaPayment(subPDA, 0);
+    const ix = new TransactionInstruction({
+      programId: PROGRAM_ID,
+      keys: [
+        {pubkey:regPK,     isSigner:false,isWritable:true},
+        {pubkey:planPK,    isSigner:false,isWritable:true},
+        {pubkey:subPDA,    isSigner:false,isWritable:true},
+        {pubkey:payPDA,    isSigner:false,isWritable:true},
+        {pubkey:wallet.publicKey,isSigner:true,isWritable:true},
+        {pubkey:SystemProgram.programId,isSigner:false,isWritable:false},
+      ],
+      data: Buffer.from(DISC.subscribe),
+    });
+    const sig = await sendTx([ix], null);
+    toast('✅ Subscribed! Payment recorded on-chain.', 'ok', EXPLORER(sig));
+    await loadData();
+  } catch(e) { toast('Error: '+e.message.slice(0,80),'err'); if(btn){btn.disabled=false;btn.innerHTML=btn.dataset.orig||'Subscribe';} }
+};
+
+window.handleRenew = async (planPKStr, regPKStr, payCount, planId) => {
+  const btnId = 'renew-btn-'+planId;
+  try {
+    const planPK = new PublicKey(planPKStr);
+    const [subPDA] = pdaSub(planPK, wallet.publicKey);
+    const [payPDA] = pdaPayment(subPDA, payCount);
+    const ix = new TransactionInstruction({
+      programId: PROGRAM_ID,
+      keys: [
+        {pubkey:new PublicKey(regPKStr),isSigner:false,isWritable:true},
+        {pubkey:planPK,isSigner:false,isWritable:true},
+        {pubkey:subPDA,isSigner:false,isWritable:true},
+        {pubkey:payPDA,isSigner:false,isWritable:true},
+        {pubkey:wallet.publicKey,isSigner:true,isWritable:true},
+        {pubkey:SystemProgram.programId,isSigner:false,isWritable:false},
+      ],
+      data: Buffer.from(DISC.renew),
+    });
+    const sig = await sendTx([ix], btnId);
+    toast('✅ Renewed! Period extended.', 'ok', EXPLORER(sig));
+    await loadData();
+  } catch(e) { toast('Error: '+e.message.slice(0,80),'err'); }
+};
+
+window.handleCancel = async (planPKStr, planId) => {
+  if (!confirm('Cancel subscription? You keep access until your period ends.')) return;
+  const btnId = 'cancel-btn-'+planId;
+  try {
+    const planPK = new PublicKey(planPKStr);
+    const [subPDA] = pdaSub(planPK, wallet.publicKey);
+    const ix = new TransactionInstruction({
+      programId: PROGRAM_ID,
+      keys: [
+        {pubkey:planPK,isSigner:false,isWritable:true},
+        {pubkey:subPDA,isSigner:false,isWritable:true},
+        {pubkey:wallet.publicKey,isSigner:true,isWritable:false},
+      ],
+      data: Buffer.from(DISC.cancel),
+    });
+    const sig = await sendTx([ix], btnId);
+    toast('✅ Cancelled. Access continues until period ends.', 'ok', EXPLORER(sig));
+    await loadData();
+  } catch(e) { toast('Error: '+e.message.slice(0,80),'err'); }
+};
+
+// ── Auto-init: load plans immediately + auto-reconnect wallet ────────────────
+(async () => {
+  // Load plans from chain without wallet (public data)
+  await loadData();
+  // Try to silently reconnect Phantom if user previously approved
+  try {
+    const ph = window?.solana;
+    if (ph?.isPhantom) {
+      await switchToDevnet();
+      const resp = await ph.connect({ onlyIfTrusted: true });
+      if (resp?.publicKey) {
+        wallet = ph;
+        renderWalletBadge();
+        await loadData(); // reload with subscription data
+      }
+    }
+  } catch (_) { /* user hasn't approved — that's fine */ }
+})();
+</script>
+</body>
+</html>
